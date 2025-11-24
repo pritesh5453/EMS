@@ -1,3 +1,5 @@
+// main_home_screen.dart
+
 import 'package:ems/Dashboard/Dashboard_Screen.dart';
 import 'package:ems/Dashboard/attendance_screen.dart';
 import 'package:ems/Dashboard/profile.dart';
@@ -5,14 +7,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
+/// EMS App Bottom Tabs
 enum BottomTab { home, attendance, profile }
 
+/// Global bottom nav provider
 final bottomTabProvider = StateProvider<BottomTab>((ref) => BottomTab.home);
 
 class MainHomeScreen extends ConsumerStatefulWidget {
-  final BottomTab initialTab;
+  final BottomTab? initialTab; // allow null
 
-  const MainHomeScreen({required this.initialTab});
+  const MainHomeScreen({super.key, this.initialTab});
 
   @override
   ConsumerState<MainHomeScreen> createState() => _MainHomeScreenState();
@@ -22,8 +26,11 @@ class _MainHomeScreenState extends ConsumerState<MainHomeScreen> {
   @override
   void initState() {
     super.initState();
+
+    /// Set initial tab (or default)
     Future.microtask(() {
-      ref.read(bottomTabProvider.notifier).state = widget.initialTab;
+      ref.read(bottomTabProvider.notifier).state =
+          widget.initialTab ?? BottomTab.home;
     });
   }
 
@@ -31,6 +38,7 @@ class _MainHomeScreenState extends ConsumerState<MainHomeScreen> {
   Widget build(BuildContext context) {
     final selectedTab = ref.watch(bottomTabProvider);
 
+    /// Pages for each tab
     final pages = {
       BottomTab.home: const AttendanceHomeScreen(),
       BottomTab.attendance: const AttendanceLogsScreen(),
@@ -39,13 +47,16 @@ class _MainHomeScreenState extends ConsumerState<MainHomeScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+
       body: Stack(
         children: [
+          /// Main page content
           Padding(
             padding: const EdgeInsets.only(bottom: 90),
             child: pages[selectedTab]!,
           ),
 
+          /// Bottom navigation bar positioned
           Positioned(
             left: 16,
             right: 16,
@@ -71,19 +82,14 @@ class _MainHomeScreenState extends ConsumerState<MainHomeScreen> {
                     iconSize: 0,
 
                     items: [
-                      /// HOME → Image asset
                       _navItemAsset(
                         "assets/icons/home.png",
                         selectedTab == BottomTab.home,
                       ),
-
-                      /// ATTENDANCE → Flutter Icon
                       _navItemIcon(
                         Icons.fact_check_outlined,
                         selectedTab == BottomTab.attendance,
                       ),
-
-                      /// PROFILE → Flutter Icon
                       _navItemIcon(
                         Icons.person_outline,
                         selectedTab == BottomTab.profile,
@@ -99,7 +105,7 @@ class _MainHomeScreenState extends ConsumerState<MainHomeScreen> {
     );
   }
 
-  /// IMAGE ICON TAB
+  /// IMAGE TAB ICON
   BottomNavigationBarItem _navItemAsset(String asset, bool isSelected) {
     return BottomNavigationBarItem(
       icon: CircleAvatar(
@@ -116,7 +122,7 @@ class _MainHomeScreenState extends ConsumerState<MainHomeScreen> {
     );
   }
 
-  /// FLUTTER ICON TAB
+  /// NORMAL ICON TAB
   BottomNavigationBarItem _navItemIcon(IconData icon, bool isSelected) {
     return BottomNavigationBarItem(
       icon: CircleAvatar(
@@ -131,17 +137,4 @@ class _MainHomeScreenState extends ConsumerState<MainHomeScreen> {
       label: "",
     );
   }
-}
-
-/// Dummy Screens
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-  @override
-  Widget build(BuildContext context) => Center(child: Text("Home"));
-}
-
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
-  @override
-  Widget build(BuildContext context) => Center(child: Text("Profile"));
 }

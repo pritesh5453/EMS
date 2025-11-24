@@ -14,12 +14,7 @@ void main() {
     ),
   );
 
-  runApp(
-    const ProviderScope(
-      // <-- REQUIRED FOR RIVERPOD
-      child: MyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {

@@ -1,8 +1,46 @@
+import 'package:ems/API_Services/profile_services.dart';
+import 'package:ems/Auth/Login.dart';
 import 'package:flutter/material.dart';
-import 'package:ems/Dashboard/Bottom_tab.dart'; // your enum + mainhome import
+import 'package:ems/Dashboard/Bottom_tab.dart';
+import 'package:ems/Model/profile_model.dart';
 
-class EmployeeProfileScreen extends StatelessWidget {
+class EmployeeProfileScreen extends StatefulWidget {
   const EmployeeProfileScreen({super.key});
+
+  @override
+  State<EmployeeProfileScreen> createState() => _EmployeeProfileScreenState();
+}
+
+class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> {
+  Profile? profileData;
+  bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProfile();
+  }
+
+  Future<void> fetchProfile() async {
+    setState(() => loading = true);
+
+    print("========================================");
+    print("📌 EmployeeProfileScreen → FetchProfile() CALLED");
+    print("========================================");
+
+    final service = ProfileService();
+    profileData = await service.fetchProfile();
+
+    if (profileData == null) {
+      print("❌ profileData is NULL");
+    } else {
+      print("✅ Profile Loaded Successfully");
+      print("➡ Name: ${profileData!.data?.fullName}");
+      print("➡ Email: ${profileData!.data?.email}");
+    }
+
+    setState(() => loading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,128 +61,145 @@ class EmployeeProfileScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                SizedBox(height: h * 0.015),
-
-                /// ---------- TOP BAR ----------
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: w * 0.04),
-                  child: Row(
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  MainHomeScreen(initialTab: BottomTab.home),
-                            ),
-                            (route) => false,
-                          );
-                        },
-                        child: const Icon(Icons.arrow_back, size: 26),
-                      ),
-                      SizedBox(width: w * 0.03),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            "Profile",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            "Select verification method",
-                            style: TextStyle(
-                              color: Colors.black54,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      Image.asset("assets/images/tms_logo.png", height: 45),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: h * 0.015),
-                Divider(thickness: 1, color: Colors.grey.shade300),
-                SizedBox(height: h * 0.04),
-
-                /// ---------- PROFILE IMAGE ----------
-                Container(
-                  clipBehavior: Clip.hardEdge,
-                  height: 110,
-                  width: 110,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Image.asset(
-                    "assets/images/user_temp.png",
-                    fit: BoxFit.cover,
-                  ),
-                ),
-
-                SizedBox(height: h * 0.03),
-
-                /// ---------- DETAILS ----------
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+          child: loading
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF003A64)),
+                )
+              : SingleChildScrollView(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _label("Name"),
-                      _value("Pritesh Pawar"),
-                      _divider(),
+                      SizedBox(height: h * 0.015),
 
-                      _label("Email"),
-                      _value("pritesh.pawar@techmetworks.com"),
-                      _divider(),
+                      /// ---------- TOP BAR ----------
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: w * 0.04),
+                        child: Row(
+                          children: [
+                            InkWell(
+                              onTap: () {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => MainHomeScreen(
+                                      initialTab: BottomTab.home,
+                                    ),
+                                  ),
+                                  (route) => false,
+                                );
+                              },
+                              child: const Icon(Icons.arrow_back, size: 26),
+                            ),
+                            SizedBox(width: w * 0.03),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  "Profile",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  "Employee Information",
+                                  style: TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Image.asset(
+                              "assets/images/tms_logo.png",
+                              height: 45,
+                            ),
+                          ],
+                        ),
+                      ),
 
-                      _label("Phone Number"),
-                      _value("+91 8552011102"),
-                      _divider(),
+                      SizedBox(height: h * 0.015),
+                      Divider(thickness: 1, color: Colors.grey.shade300),
+                      SizedBox(height: h * 0.04),
 
-                      _label("Role"),
-                      _value("Flutter Developer"),
-                      _divider(),
+                      /// ---------- PROFILE IMAGE ----------
+                      Container(
+                        clipBehavior: Clip.hardEdge,
+                        height: 110,
+                        width: 110,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: profileData?.data?.photo == null
+                            ? Image.asset(
+                                "assets/images/user_temp.png",
+                                fit: BoxFit.cover,
+                              )
+                            : Image.network(
+                                profileData!.data!.photo!,
+                                fit: BoxFit.cover,
+                              ),
+                      ),
 
-                      _label("Current Address"),
-                      _value("Business Bay, Nashik"),
-                      _divider(),
+                      SizedBox(height: h * 0.03),
 
-                      _label("Date of birth"),
-                      _value("18 April 1999"),
-                      _divider(),
+                      /// ---------- DETAILS ----------
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _label("Name"),
+                            _value(profileData?.data?.fullName ?? "-"),
+                            _divider(),
 
-                      _label("Joining Date"),
-                      _value("20 Sept 2024"),
-                      _divider(),
+                            _label("Email"),
+                            _value(profileData?.data?.email ?? "-"),
+                            _divider(),
 
-                      SizedBox(height: 20),
+                            _label("Phone Number"),
+                            _value(profileData?.data?.phone ?? "-"),
+                            _divider(),
 
-                      /// ---------- LOGOUT BUTTON ----------
-                      _logoutButton(context),
+                            _label("Department"),
+                            _value(profileData?.data?.department ?? "-"),
+                            _divider(),
 
-                      SizedBox(height: h * 0.15),
+                            _label("Designation"),
+                            _value(profileData?.data?.position ?? "-"),
+                            _divider(),
+
+                            _label("Current Address"),
+                            _value(profileData?.data?.address ?? "-"),
+                            _divider(),
+
+                            _label("Date of Birth"),
+                            _value(profileData?.data?.dob ?? "-"),
+                            _divider(),
+
+                            _label("Joining Date"),
+                            _value(profileData?.data?.startDate ?? "-"),
+                            _divider(),
+
+                            SizedBox(height: 20),
+
+                            /// ---------- LOGOUT BUTTON ----------
+                            _logoutButton(context),
+
+                            SizedBox(height: h * 0.15),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
         ),
       ),
     );
   }
 
-  /// ---------- LABEL ----------
+  /// LABEL
   Widget _label(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4, top: 14),
@@ -155,7 +210,7 @@ class EmployeeProfileScreen extends StatelessWidget {
     );
   }
 
-  /// ---------- VALUE ----------
+  /// VALUE
   Widget _value(String text) {
     return Text(
       text,
@@ -167,7 +222,7 @@ class EmployeeProfileScreen extends StatelessWidget {
     );
   }
 
-  /// ---------- DIVIDER ----------
+  /// DIVIDER
   Widget _divider() {
     return Padding(
       padding: const EdgeInsets.only(top: 12),
@@ -175,12 +230,10 @@ class EmployeeProfileScreen extends StatelessWidget {
     );
   }
 
-  /// ---------- LOGOUT BUTTON ----------
+  /// LOGOUT BUTTON
   Widget _logoutButton(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        _showLogoutPopup(context);
-      },
+      onTap: () => _showLogoutPopup(context),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         child: Row(
@@ -201,7 +254,7 @@ class EmployeeProfileScreen extends StatelessWidget {
     );
   }
 
-  /// ---------- POPUP ----------
+  /// LOGOUT POPUP
   void _showLogoutPopup(BuildContext context) {
     showDialog(
       context: context,
@@ -242,7 +295,6 @@ class EmployeeProfileScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    /// CANCEL BUTTON
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
@@ -259,14 +311,12 @@ class EmployeeProfileScreen extends StatelessWidget {
 
                     const SizedBox(width: 15),
 
-                    /// LOGOUT BUTTON → HOME
                     ElevatedButton(
                       onPressed: () {
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                MainHomeScreen(initialTab: BottomTab.home),
+                            builder: (context) => LoginScreen(),
                           ),
                           (route) => false,
                         );
