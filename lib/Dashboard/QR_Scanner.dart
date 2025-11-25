@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'package:dio/dio.dart';
+import 'package:ems/Dashboard/Bottom_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -46,8 +46,14 @@ class _PunchScannerScreenState extends ConsumerState<PunchScannerScreen> {
     return null;
   }
 
+  /// --------- QR MATCH CHECK ----------
+  bool validateQR(Map qrJson, String userEmail) {
+    return qrJson["employee_email"].toString().toLowerCase() ==
+        userEmail.toLowerCase();
+  }
+
   /// --------- CALL PUNCH API ----------
-  Future<Map<String, dynamic>?> punchApiCall(String qrRaw) async {
+  Future<Map<String, dynamic>?> punchApiCall(String qrAction) async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -55,31 +61,30 @@ class _PunchScannerScreenState extends ConsumerState<PunchScannerScreen> {
       String? password = prefs.getString("login_password");
       String? token = prefs.getString("token");
 
-      print("📌 LOGIN EMAIL = $email");
-      print("📌 LOGIN PASSWORD = $password");
+      print("📌 EMAIL = $email");
+      print("📌 PASSWORD = $password");
       print("📌 TOKEN = $token");
 
       Dio dio = Dio();
       dio.options.headers["Authorization"] = "Bearer $token";
       dio.options.headers["Accept"] = "application/json";
 
-      print("➡ Hitting Punch API with RAW QR:");
-      print(qrRaw);
+      print("➡ SENDING ACTION TO API: $qrAction");
 
       final response = await dio.post(
         "http://tmshrmanagement.techmetworks.com/api/employee/attendance/punchinpunchout",
-        data: {"email": email, "password": password, "qr_data": qrRaw},
+        data: {"email": email, "password": password, "action": qrAction},
       );
 
       print("✅ API RESPONSE:");
       print(response.data);
-      log("rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr");
+
       return response.data;
     } catch (e) {
       print("❌ Punch API Error: $e");
       if (e is DioException) {
         print(
-          "❌ DioException: Response=${e.response?.data}, Status=${e.response?.statusCode}",
+          "❌ DioException: ${e.response?.data}, Status=${e.response?.statusCode}",
         );
       }
       return null;
@@ -162,10 +167,10 @@ class _PunchScannerScreenState extends ConsumerState<PunchScannerScreen> {
 
                     setState(() => isProcessing = true);
 
-                    print("\n================ RAW QR =================");
+                    print("=============== RAW QR SCANNED ===============");
                     print(rawQR);
 
-                    /// 1️⃣ DECODE QR FOR DISPLAY ONLY
+                    /// 1️⃣ Decode QR
                     final decoded = decodeQR(rawQR);
                     if (decoded == null) {
                       showError("Invalid QR Code Format");
@@ -176,33 +181,34 @@ class _PunchScannerScreenState extends ConsumerState<PunchScannerScreen> {
                     scannedCode = jsonEncode(decoded);
                     qrJson = decoded;
 
-                    print("================ DECODED QR JSON ================");
+                    print("=============== DECODED QR JSON ===============");
                     print(decoded);
 
-                    /// 2️⃣ Send RAW QR to backend (IMPORTANT)
-                    final api = await punchApiCall(rawQR);
+                    /// 2️⃣ Validate QR belongs to logged-in employee
+                    final prefs = await SharedPreferences.getInstance();
+                    String email = prefs.getString("login_email") ?? "";
 
-                    // if (api == null) {
-                    //   print("❌ API RESPONSE = NULL (Server Error)");
-                    //   showError("Server Error");
-                    //   print("$showError");
-                    // } else if (api["success"] == true) {
-                    //   print("🟢 API SUCCESS = TRUE");
-                    //   print("🟢 MESSAGE: ${api["message"]}");
-                    //   print("🟢 ACTION: ${decoded["action"]}");
-                    //   print("🟢 PUNCH SUCCESS — Navigating to Success Page");
+                    if (!validateQR(decoded, email)) {
+                      showError("This QR does not belong to your account!");
+                      setState(() => isProcessing = false);
+                      return;
+                    }
 
-                    //   showSuccessPage(decoded["action"]);
-                    // } else {
-                    //   print("🔴 API SUCCESS = FALSE");
-                    //   print("🔴 MESSAGE: ${api["message"]}");
-                    //   print("🔴 RAW API RESPONSE: $api");
+                    /// 3️⃣ Hit Punch API
+                    final api = await punchApiCall(decoded["action"]);
 
-                    //   showError(api["message"] ?? "Invalid QR");
-                    // }
+                    print("=============== API RESULT ===============");
 
-                    // await Future.delayed(const Duration(seconds: 1));
-                    // setState(() => isProcessing = false);
+                    if (api == null) {
+                      showError("Server Error");
+                    } else if (api["success"] == true) {
+                      showSuccessPage(decoded["action"]);
+                    } else {
+                      showError(api["message"] ?? "Invalid QR Data");
+                    }
+
+                    await Future.delayed(const Duration(seconds: 1));
+                    setState(() => isProcessing = false);
                   },
                 ),
               ),
@@ -236,20 +242,42 @@ class _PunchScannerScreenState extends ConsumerState<PunchScannerScreen> {
   }
 }
 
-class SuccessScreen extends StatelessWidget {
+class SuccessScreen extends StatefulWidget {
   final String action;
   const SuccessScreen({super.key, required this.action});
 
   @override
+  State<SuccessScreen> createState() => _SuccessScreenState();
+}
+
+class _SuccessScreenState extends State<SuccessScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    /// Redirect after 2 seconds
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const MainHomeScreen(initialTab: BottomTab.home),
+        ),
+        (route) => false,
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Center(
         child: Text(
-          action == "punch_in"
+          widget.action == "punch_in"
               ? "Successfully Punch In"
               : "Successfully Punch Out",
           style: const TextStyle(
-            fontSize: 26,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
             color: Colors.green,
           ),
