@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:ems/Model/attendance_model.dart';
+import 'package:ems/util/network_services.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'QR_Scanner.dart';
@@ -123,8 +124,34 @@ class _AttendanceHomeScreenState extends State<AttendanceHomeScreen> {
                               borderRadius: BorderRadius.circular(30),
                             ),
                           ),
-                          onPressed: () {
-                            print("➡ Navigating to PunchScannerScreen");
+                          onPressed: () async {
+                            print(
+                              "➡ CHECKING WiFi before navigating to PunchScannerScreen...",
+                            );
+
+                            // Allowed gateways list
+                            bool allowed =
+                                await NetworkService.isAllowedNetwork([
+                                  "192.168.1.1",
+                                  "192.168.0.1",
+                                ]);
+
+                            if (!allowed) {
+                              print("❌ WiFi NOT allowed");
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    "Please connect to Company WiFi to Check In/Out",
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return; // Stop navigation
+                            }
+
+                            print(
+                              "✅ WiFi ALLOWED → Navigating to PunchScannerScreen",
+                            );
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -133,6 +160,7 @@ class _AttendanceHomeScreenState extends State<AttendanceHomeScreen> {
                               ),
                             );
                           },
+
                           child: const Text(
                             "Check In/Out",
                             style: TextStyle(fontSize: 16, color: Colors.white),

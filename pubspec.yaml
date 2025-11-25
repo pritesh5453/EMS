@@ -18,6 +18,7 @@ dependencies:
   http: ^1.6.0
   dio: ^5.9.0
   shared_preferences: ^2.5.3
+  network_info_plus: ^7.0.0
 
 dev_dependencies:
   flutter_test:
